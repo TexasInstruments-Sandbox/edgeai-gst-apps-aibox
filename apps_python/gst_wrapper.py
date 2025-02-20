@@ -569,6 +569,8 @@ def get_input_elements(input):
         source = "http"
     elif input.source.startswith("rtsp"):
         source = "rtsp"
+    elif input.source.startswith("udpsrc"):
+        source = "udpsrc"
     elif os.path.isfile(input.source):
         if (source_ext == ".h264" or source_ext == ".h265"):
             source = 'raw_video'
@@ -713,6 +715,18 @@ def get_input_elements(input):
             "name": source_name,
         }
         element = make_element("rtspsrc", property=property)
+        input_element_list += element
+        element = make_element("rtph264depay")
+        input_element_list += element
+        for i in video_dec["h264"]:
+            element = make_element(i[0], property=i[1], caps=i[2])
+            input_element_list += element
+
+    elif source == "udpsrc":
+        property = {
+            "port": input.udp_port
+        }
+        element = make_element("udpsrc", property=property, caps=input.udp_caps)
         input_element_list += element
         element = make_element("rtph264depay")
         input_element_list += element

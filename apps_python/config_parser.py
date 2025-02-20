@@ -59,6 +59,14 @@ class Input:
             self.sen_id = input_config["sen-id"]
         else:
             self.sen_id = "imx219"
+        if "udp-port" in input_config:
+            self.udp_port = input_config["udp-port"]
+        else:
+            self.udp_port = 5000
+        if "udp-caps" in input_config:
+            self.udp_caps = input_config["udp-caps"]
+        else:
+            self.udp_caps = 'application/x-rtp, media=(string)video, clock-rate=(int)90000, encoding-name=(string)H264, packetization-mode=(string)1, sprop-parameter-sets=(string)"Z0IACukAoAt0IAAAAwAgAAAHkIA\\=\\,aMqPDA\\=\\=", profile-level-id=(string)42000a, profile=(string)baseline, payload=(int)96, ssrc=(uint)1960478763, timestamp-offset=(uint)1987672732, seqnum-offset=(uint)1109, a-framerate=(string)30'
         self.id = Input.count
         Input.count += 1
         self.split_count = 0

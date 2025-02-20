@@ -72,6 +72,7 @@ class InferPipe:
 
         self.pipeline_thread = threading.Thread(target=self.pipeline)
         self.stop_thread = False
+        self.is_udp_started = False
 
     def start(self):
         """
@@ -100,7 +101,12 @@ class InferPipe:
                 self.sub_flow.model.input_tensor_types[0],
             )
             if type(input_img) == type(None):
+                if self.sub_flow.input.source == "udpsrc" and not self.is_udp_started:
+                    continue
                 break
+
+            if not self.is_udp_started:
+                self.is_udp_started = True
 
             if self.pre_proc_debug:
                 self.pre_proc_debug.log(str(input_img.flatten()))
