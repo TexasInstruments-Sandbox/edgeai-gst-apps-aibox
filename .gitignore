@@ -14,4 +14,4 @@ apps_cpp/tags
 
 # test logs
 logs/*
-
+*.log

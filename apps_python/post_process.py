@@ -32,6 +32,10 @@ import cv2
 import numpy as np
 import copy
 import debug
+import time
+import http.client
+import json
+import os
 
 np.set_printoptions(threshold=np.inf, linewidth=np.inf)
 
@@ -90,6 +94,8 @@ class PostProcess:
             return PostProcessClassification(flow)
         elif flow.model.task_type == "detection":
             return PostProcessDetection(flow)
+        elif flow.model.task_type == "det_pklot":
+            return PostProcessPKLot(flow)
         elif flow.model.task_type == "segmentation":
             return PostProcessSegmentation(flow)
         elif flow.model.task_type == "keypoint_detection":
@@ -188,6 +194,183 @@ class PostProcessClassification(PostProcess):
 
         return frame
 
+class PostProcessPKLot(PostProcess):
+    def __init__(self, flow):
+        super().__init__(flow)
+        self.last_tic = time.time()
+        self.server_ip = os.getenv('SERVER_IP', '127.0.0.1')
+        self.server_port = int(os.getenv('SERVER_PORT', '5000'))
+
+    def __call__(self, img, results):
+        """
+        Post process function for detection
+        Args:
+            img: Input frame
+            results: output of inference
+        """
+        for i, r in enumerate(results):
+            r = np.squeeze(r)
+            if r.ndim == 1:
+                r = np.expand_dims(r, 1)
+            results[i] = r
+
+        if self.model.shuffle_indices:
+            results_reordered = []
+            for i in self.model.shuffle_indices:
+                results_reordered.append(results[i])
+            results = results_reordered
+
+        if results[-1].ndim < 2:
+            results = results[:-1]
+
+        bbox = np.concatenate(results, axis=-1)
+
+        if self.model.formatter:
+            if self.model.ignore_index == None:
+                bbox_copy = copy.deepcopy(bbox)
+            else:
+                bbox_copy = copy.deepcopy(np.delete(bbox, self.model.ignore_index, 1))
+            bbox[..., self.model.formatter["dst_indices"]] = bbox_copy[
+                ..., self.model.formatter["src_indices"]
+            ]
+
+        if not self.model.normalized_detections:
+            bbox[..., (0, 2)] /= self.model.resize[0]
+            bbox[..., (1, 3)] /= self.model.resize[1]
+
+        empty = 0
+        occupied = 0
+
+        for b in bbox:
+            if b[5] > self.model.viz_threshold:
+                if type(self.model.label_offset) == dict:
+                    class_name_idx = self.model.label_offset[int(b[4])]
+                else:
+                    class_name_idx = self.model.label_offset + int(b[4])
+
+
+                if class_name_idx in self.model.dataset_info:
+                    class_name = self.model.dataset_info[class_name_idx].name
+                    if not class_name:
+                        class_name = "UNDEFINED"
+                    if self.model.dataset_info[class_name_idx].supercategory:
+                        class_name = (
+                            self.model.dataset_info[class_name_idx].supercategory
+                            + "/"
+                            + class_name
+                        )
+                    color = self.model.dataset_info[class_name_idx].rgb_color
+                else:
+                    class_name = "UNDEFINED"
+                    color = (20, 220, 20)
+                
+                if class_name_idx == 1:
+                    empty += 1
+                else:
+                    occupied += 1
+
+                img = self.overlay_bounding_box(img, b, class_name, color)
+
+        empty_text = f"Empty Spaces: {empty}"
+        occupied_text = f"Occupied Spaces: {occupied}"
+
+        t = time.time()
+        if t - self.last_tic >= 10:
+            conn = http.client.HTTPConnection(self.server_ip, self.server_port)
+            time_fmt = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(t))
+            json_data = json.dumps({"log": f"[{time_fmt}] {empty_text}, {occupied_text}"})
+            headers = {"Content-Type": "application/json"}
+
+            try:
+                conn.request("POST", "/", json_data, headers)
+                res = conn.getresponse()
+            except Exception as e:
+                print(f"An error occured: {e}")
+            finally:
+                conn.close()
+                self.last_tic = time.time()
+
+        (empty_text_width, empty_text_height), _ = cv2.getTextSize(empty_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 3)
+        (occ_text_width, occ_text_height), _ = cv2.getTextSize(occupied_text, cv2.FONT_HERSHEY_SIMPLEX, 1, 3)
+
+        cv2.rectangle(
+            img,
+            (5, 10),
+            (10 + occ_text_width, 2 * (10 + occ_text_height)),
+            (0, 0, 0),
+            thickness=-1
+        )
+
+        cv2.putText(
+            img,
+            empty_text,
+            (5, empty_text_height + 10),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            3,
+        )
+        cv2.putText(
+            img,
+            occupied_text,
+            (5, 2 * (occ_text_height + 10)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 255, 0),
+            3,
+        )
+
+        if self.debug:
+            self.debug.log(self.debug_str)
+            self.debug_str = ""
+
+        return img
+
+    def overlay_bounding_box(self, frame, box, class_name, color):
+        """
+        draw bounding box at given co-ordinates.
+
+        Args:
+            frame (numpy array): Input image where the overlay should be drawn
+            bbox : Bounding box co-ordinates in format [X1 Y1 X2 Y2]
+            class_name : Name of the class to overlay
+        """
+        box = [
+            int(box[0] * frame.shape[1]),
+            int(box[1] * frame.shape[0]),
+            int(box[2] * frame.shape[1]),
+            int(box[3] * frame.shape[0]),
+        ]
+
+        box_color = color
+        luma = ((66*(color[0])+129*(color[1])+25*(color[2])+128)>>8)+16
+        if(luma >= 128):
+            text_color = (0, 0, 0)
+        else:
+            text_color = (255, 255, 255)
+
+        cv2.rectangle(frame, (box[0], box[1]), (box[2], box[3]), box_color, 2)
+        cv2.rectangle(
+            frame,
+            (int((box[2] + box[0]) / 2) - 5, int((box[3] + box[1]) / 2) + 5),
+            (int((box[2] + box[0]) / 2) + 160, int((box[3] + box[1]) / 2) - 15),
+            box_color,
+            -1,
+        )
+        cv2.putText(
+            frame,
+            class_name,
+            (int((box[2] + box[0]) / 2), int((box[3] + box[1]) / 2)),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.5,
+            text_color,
+        )
+
+        if self.debug:
+            self.debug_str += class_name
+            self.debug_str += str(box) + "\n"
+
+        return frame
 
 class PostProcessDetection(PostProcess):
     def __init__(self, flow):
