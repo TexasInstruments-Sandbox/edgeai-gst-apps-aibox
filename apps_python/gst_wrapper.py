@@ -18,6 +18,7 @@ preproc_target_idx = 0
 isp_target_idx = 0
 ldc_target_idx = 0
 
+
 class GstPipe:
     """
     Class to handle gstreamer pipeline related things
@@ -383,7 +384,6 @@ def get_format(pipeline, input_elements):
 
     pipeline.set_state(Gst.State.NULL)
 
-
     if src_element.get_factory().get_name() == "multifilesrc":
         src_element.set_property("num-buffers", default_buffers)
 
@@ -530,8 +530,9 @@ def get_input_elements(input):
         property = {}
         if "property" in gst_element_map["h264dec"]:
             if "capture-io-mode" in gst_element_map["h264dec"]["property"]:
-                property["capture-io-mode"] = \
-                            gst_element_map["h264dec"]["property"]["capture-io-mode"]
+                property["capture-io-mode"] = gst_element_map["h264dec"]["property"][
+                    "capture-io-mode"
+                ]
         video_dec["h264"].append(
             [gst_element_map["h264dec"]["element"], property, None]
         )
@@ -545,8 +546,9 @@ def get_input_elements(input):
         property = {}
         if "property" in gst_element_map["h265dec"]:
             if "capture-io-mode" in gst_element_map["h265dec"]["property"]:
-                property["capture-io-mode"] = \
-                            gst_element_map["h265dec"]["property"]["capture-io-mode"]
+                property["capture-io-mode"] = gst_element_map["h265dec"]["property"][
+                    "capture-io-mode"
+                ]
         video_dec["h265"].append(
             [gst_element_map["h265dec"]["element"], property, None]
         )
@@ -572,8 +574,8 @@ def get_input_elements(input):
     elif input.source.startswith("udpsrc"):
         source = "udpsrc"
     elif os.path.isfile(input.source):
-        if (source_ext == ".h264" or source_ext == ".h265"):
-            source = 'raw_video'
+        if source_ext == ".h264" or source_ext == ".h265":
+            source = "raw_video"
             stop_index = 0
         elif source_ext in video_ext:
             source = "video"
@@ -608,9 +610,7 @@ def get_input_elements(input):
     source_name = "source0"
 
     if source == "camera":
-
         if input.format == "jpeg":
-
             property = {"device": input.source, "name": source_name}
             caps = "image/jpeg, width=%d, height=%d" % (input.width, input.height)
             element = make_element("v4l2src", property=property, caps=caps)
@@ -635,7 +635,7 @@ def get_input_elements(input):
             if input.sen_id == "imx219":
                 sen_name = "SENSOR_SONY_IMX219_RPI"
                 format_msb = 7
-                if (input.format == "rggb10"):
+                if input.format == "rggb10":
                     format_msb = 9
             elif input.sen_id == "imx390":
                 sen_name = "SENSOR_SONY_IMX390_UB953_D3"
@@ -653,9 +653,13 @@ def get_input_elements(input):
             global isp_target_idx
             if "property" in gst_element_map["isp"]:
                 if "target" in gst_element_map["isp"]["property"]:
-                    property["target"] = gst_element_map["isp"]["property"]["target"][isp_target_idx]
+                    property["target"] = gst_element_map["isp"]["property"]["target"][
+                        isp_target_idx
+                    ]
                     isp_target_idx += 1
-                    if isp_target_idx >= len(gst_element_map["isp"]["property"]["target"]):
+                    if isp_target_idx >= len(
+                        gst_element_map["isp"]["property"]["target"]
+                    ):
                         isp_target_idx = 0
 
             caps = "video/x-raw, format=NV12"
@@ -670,9 +674,13 @@ def get_input_elements(input):
                 global ldc_target_idx
                 if "property" in gst_element_map["ldc"]:
                     if "target" in gst_element_map["ldc"]["property"]:
-                        property["target"] = gst_element_map["ldc"]["property"]["target"][ldc_target_idx]
+                        property["target"] = gst_element_map["ldc"]["property"][
+                            "target"
+                        ][ldc_target_idx]
                         ldc_target_idx += 1
-                        if ldc_target_idx >= len(gst_element_map["ldc"]["property"]["target"]):
+                        if ldc_target_idx >= len(
+                            gst_element_map["ldc"]["property"]["target"]
+                        ):
                             ldc_target_idx = 0
 
                 caps = "video/x-raw, format=NV12, width=1920, height=1080"
@@ -723,15 +731,19 @@ def get_input_elements(input):
             input_element_list += element
 
     elif source == "udpsrc":
-        property = {
-            "port": input.udp_port
-        }
+        property = {"port": input.udp_port}
         element = make_element("udpsrc", property=property, caps=input.udp_caps)
         input_element_list += element
-        element = make_element("rtph264depay")
-        input_element_list += element
-        for i in video_dec["h264"]:
-            element = make_element(i[0], property=i[1], caps=i[2])
+        if input.format == "h264":
+            element = make_element("rtph264depay")
+            input_element_list += element
+            for i in video_dec["h264"]:
+                element = make_element(i[0], property=i[1], caps=i[2])
+                input_element_list += element
+        elif input.format == "jpeg":
+            element = make_element("rtpjpegdepay")
+            input_element_list += element
+            element = make_element("jpegdec")
             input_element_list += element
 
     elif source == "image":
@@ -772,7 +784,6 @@ def get_input_elements(input):
         input_element_list += element
         for i in video_dec[input.format]:
             input_element_list += make_element(i[0], property=i[1], caps=i[2])
-
 
     elif source == "video":
         if not (input.format in video_dec):
@@ -911,8 +922,7 @@ def get_output_elements(output):
         output: output configuration
     """
 
-    prop_str = "video_bitrate=%d,video_gop_size=%d" \
-                                              % (output.bitrate,output.gop_size)
+    prop_str = "video_bitrate=%d,video_gop_size=%d" % (output.bitrate, output.gop_size)
     enc_extra_ctrl = "controls,frame_level_rate_control_enable=1," + prop_str
 
     video_enc = {
@@ -936,9 +946,8 @@ def get_output_elements(output):
 
     if output.overlay_perf_type != None:
         sink_elements += make_element("queue")
-        property = {"title":output.title,
-                    "overlay-type":output.overlay_perf_type}
-        sink_elements += make_element("tiperfoverlay",property=property)
+        property = {"title": output.title, "overlay-type": output.overlay_perf_type}
+        sink_elements += make_element("tiperfoverlay", property=property)
 
     sink_ext = os.path.splitext(output.sink)[1]
     status = 0
@@ -961,7 +970,12 @@ def get_output_elements(output):
     sink_name = "sink%d" % (output.id)
 
     if sink == "display":
-        property = {"sync": False, "driver-name": "tidss", "name": sink_name, "force-modesetting": True}
+        property = {
+            "sync": False,
+            "driver-name": "tidss",
+            "name": sink_name,
+            "force-modesetting": True,
+        }
         if output.connector:
             property["connector-id"] = output.connector
         sink_elements += make_element("kmssink", property=property)
@@ -974,7 +988,7 @@ def get_output_elements(output):
 
     elif sink == "video":
         property = {}
-        if (gst_element_map["h264enc"]["element"] == "v4l2h264enc"):
+        if gst_element_map["h264enc"]["element"] == "v4l2h264enc":
             property = {"extra-controls": Gst.Structure.from_string(enc_extra_ctrl)[0]}
 
         sink_elements += make_element(gst_element_map["h264enc"], property=property)
@@ -982,7 +996,7 @@ def get_output_elements(output):
         for i in video_enc[sink_ext]:
             sink_elements += make_element(i[0], property=i[1])
 
-        property={"location": output.sink, "name": sink_name}
+        property = {"location": output.sink, "name": sink_name}
         sink_elements += make_element("filesink", property=property)
 
     elif sink == "remote":
@@ -990,32 +1004,36 @@ def get_output_elements(output):
 
         # MP4 or H264 encoding
         if output.encoding == "mp4" or output.encoding == "h264":
-            if (gst_element_map["h264enc"]["element"] == "v4l2h264enc"):
-                property = {"extra-controls": Gst.Structure.from_string(enc_extra_ctrl)[0]}
+            if gst_element_map["h264enc"]["element"] == "v4l2h264enc":
+                property = {
+                    "extra-controls": Gst.Structure.from_string(enc_extra_ctrl)[0]
+                }
 
             sink_elements += make_element(gst_element_map["h264enc"], property=property)
 
             sink_elements += make_element("h264parse")
 
             if output.encoding == "mp4":
-                property = {"fragment-duration":1}
+                property = {"fragment-duration": 1}
                 sink_elements += make_element("mp4mux", property=property)
             elif output.encoding == "h264":
                 sink_elements += make_element("rtph264pay")
 
         # Jpeg encoding
         elif output.encoding == "jpeg":
-
             sink_elements += make_element(gst_element_map["jpegenc"])
 
-            property = {"boundary":"spionisto"}
-            sink_elements += make_element("multipartmux",property=property)
+            property = {"boundary": "spionisto"}
+            sink_elements += make_element("multipartmux", property=property)
 
-            property = {"max":65000}
+            property = {"max": 65000}
             sink_elements += make_element("rndbuffersize", property=property)
 
         else:
-            print("[ERROR] Wrong encoding [%s] defined for remote output.", output.encoding)
+            print(
+                "[ERROR] Wrong encoding [%s] defined for remote output.",
+                output.encoding,
+            )
             sys.exit()
 
         property = {
@@ -1127,9 +1145,13 @@ def get_pre_proc_elements(flow):
 
         if "property" in gst_element_map["dlpreproc"]:
             if "target" in gst_element_map["dlpreproc"]["property"]:
-                property["target"] = gst_element_map["dlpreproc"]["property"]["target"][preproc_target_idx]
+                property["target"] = gst_element_map["dlpreproc"]["property"]["target"][
+                    preproc_target_idx
+                ]
                 preproc_target_idx += 1
-                if preproc_target_idx >= len(gst_element_map["dlpreproc"]["property"]["target"]):
+                if preproc_target_idx >= len(
+                    gst_element_map["dlpreproc"]["property"]["target"]
+                ):
                     preproc_target_idx = 0
 
             if "out-pool-size" in gst_element_map["dlpreproc"]["property"]:
@@ -1194,7 +1216,7 @@ def get_post_proc_elements(flow):
 
     for o in flow.outputs:
         sink_ext = os.path.splitext(o.sink)[1]
-        if(sink_ext == ".mov" or sink_ext == ".mp4"):
+        if sink_ext == ".mov" or sink_ext == ".mp4":
             property["is-live"] = True
             break
 
@@ -1232,7 +1254,7 @@ def get_color_convert_config(input_format, output_format):
         "I420": ["NV12"],
         "UYVY": ["NV12"],
         "YUY2": ["NV12"],
-        "GRAY8": ["NV12"]
+        "GRAY8": ["NV12"],
     }
 
     dl_color_convert_element_factory = Gst.ElementFactory.find(
@@ -1318,7 +1340,9 @@ def get_gst_pipe(flows, outputs):
                 dcc_2a_file = "/opt/imaging/%s/linear/dcc_2a.bin" % f.input.sen_id
                 Gst.ChildProxy.set_property(elem, "sink_0::dcc-2a-file", dcc_2a_file)
                 if not f.input.format.startswith("bggi"):
-                    Gst.ChildProxy.set_property(elem, "sink_0::device", f.input.subdev_id)
+                    Gst.ChildProxy.set_property(
+                        elem, "sink_0::device", f.input.subdev_id
+                    )
 
         # Get format of last input element after caps negotiation
         input_format = get_format(gst_player, f.input.gst_inp_elements)
@@ -1611,9 +1635,10 @@ def get_gst_pipe(flows, outputs):
                         )
                     link_elements(o.gst_mosaic_elements[-1], o.gst_disp_elements[0])
 
-                    if (o.overlay_perf_type != None
-                        and
-                        gst_element_map["mosaic"]["element"] == "tiovxmosaic"):
+                    if (
+                        o.overlay_perf_type != None
+                        and gst_element_map["mosaic"]["element"] == "tiovxmosaic"
+                    ):
                         Gst.ChildProxy.set_property(mosaic, "src::pool-size", 4)
 
                 else:
@@ -1627,7 +1652,6 @@ def get_gst_pipe(flows, outputs):
                             o.height,
                         )
                         if s.flow.is_multi_scaler:
-
                             """
                             Running these extra multiscalers on
                             target = 1 (where mosaic is also running).
