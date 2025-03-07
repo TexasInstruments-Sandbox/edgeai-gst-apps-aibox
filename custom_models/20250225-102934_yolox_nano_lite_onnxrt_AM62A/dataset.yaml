@@ -1,0 +1,42 @@
+info:
+  year: '2021'
+  version: '1'
+  description: Exported from roboflow.ai
+  contributor: Universidade Federal do Parana
+  url: https://public.roboflow.ai/object-detection/pklot
+  date_created: '2021-01-05T18:29:08+00:00'
+categories:
+- id: 0
+  name: spaces
+  supercategory: none
+- id: 1
+  name: space-empty
+  supercategory: spaces
+- id: 2
+  name: space-occupied
+  supercategory: spaces
+color_map:
+- - 0
+  - 0
+  - 0
+- - 0
+  - 0
+  - 255
+- - 0
+  - 255
+  - 0
+- - 0
+  - 255
+  - 255
+- - 255
+  - 0
+  - 0
+- - 255
+  - 0
+  - 255
+- - 255
+  - 255
+  - 0
+- - 255
+  - 255
+  - 255
