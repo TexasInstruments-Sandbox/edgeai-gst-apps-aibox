@@ -36,7 +36,7 @@ outputs:
         sink: kmssink
         width: 1920
         height: 1080
-        #overlay-perf-type: graph
+        overlay-perf-type: graph
     output2:
         sink: remote
         width: 1920
