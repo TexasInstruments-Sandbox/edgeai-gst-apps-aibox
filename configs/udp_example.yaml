@@ -29,7 +29,7 @@ models:
         model_path: /opt/model_zoo/ONR-SS-8610-deeplabv3lite-mobv2-ade20k32-512x512
         alpha: 0.4
     model3:
-        model_path: /opt/custom_models/20250220-162812_yolox_tiny_lite_onnxrt_AM62A
+        model_path: /opt/custom_models/20250225-102934_yolox_nano_lite_onnxrt_AM62A
         viz_threshold: 0.5
 outputs:
     output0:
