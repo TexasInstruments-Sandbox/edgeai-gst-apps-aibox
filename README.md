@@ -34,3 +34,6 @@ The demo made the following changes to the EdgeAI SDK to support this workflow (
 1. UDP input support was added to the SDK. This also requires waiting for the stream initially. ([Commit that adds UDP input support](https://github.com/goyal-jay/edgeai-gst-apps-aibox/commit/7d935f1af22b028dd5f3bedabef61a1a67eeb2c3), [Commit that adds jpeg support over UDP](https://github.com/goyal-jay/edgeai-gst-apps-aibox/commit/f722c7122b53d840ca8acdba91d2fd1bb0a5c0f2))
 
 2. A custom post processing script was added along with a corresponding server. ([Corresponding commit](https://github.com/goyal-jay/edgeai-gst-apps-aibox/commit/7d935f1af22b028dd5f3bedabef61a1a67eeb2c3))
+
+## Reference
+This demo uses the PKLot dataset available [here](https://web.inf.ufpr.br/vri/databases/parking-lot-database/). This dataset(licensed under [CC BY 4.0 license](https://creativecommons.org/licenses/by/4.0/)) was introduced in the following paper: _[Almeida, P., Oliveira, L. S., Silva Jr, E., Britto Jr, A., Koerich, A., PKLot – A robust dataset for parking lot classification, Expert Systems with Applications, 42(11):4937-4949, 2015.](https://www.inf.ufpr.br/lesoliveira/download/ESWA2015.pdf)_
