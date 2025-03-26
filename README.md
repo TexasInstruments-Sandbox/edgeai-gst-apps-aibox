@@ -29,8 +29,6 @@ Replace the values in angle brackets with the correct values. To get IP addresse
 ## Result
 The application has two main parts: A live feed and the server. The live video is overlaid with the bounding boxes of each parking space and the counts of occupied and free parking spaces. The green boxes represent occupied spaces and the red boxes represent free spaces. The server receives the data from the EVM and displays it on a frontend. The application sends data to a remote HTTP server. We can send get requests to the example server and it responds with a html file displaying all the data it has received.
 
-![](assets/VID_20250307_155745288.mp4)
-
 ## Overview of Changes
 The demo made the following changes to the EdgeAI SDK to support this workflow (Corresponding commits are also linked to understand the modifications done):
 1. UDP input support was added to the SDK. This also requires waiting for the stream initially. ([Commit that adds UDP input support](https://github.com/goyal-jay/edgeai-gst-apps-aibox/commit/7d935f1af22b028dd5f3bedabef61a1a67eeb2c3), [Commit that adds jpeg support over UDP](https://github.com/goyal-jay/edgeai-gst-apps-aibox/commit/f722c7122b53d840ca8acdba91d2fd1bb0a5c0f2))
