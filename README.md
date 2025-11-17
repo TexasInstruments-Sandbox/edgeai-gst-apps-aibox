@@ -5,6 +5,8 @@ This showcases how the EdgeAI SDK can be modified to receive remote streams over
 
 This demo uses the yolox-nano-lite model available on EdgeAI Model Zoo. Transfer learning was applied to the model to output two categories: occupied parking space and free parking space.
 
+[!Demo Preview](https://github.com/user-attachments/assets/f5a869d6-877b-48d9-9d36-39b56e49cc66)
+
 ## Running the Demo
 1. Copy the `apps_python` directory in the repo to the path `/opt/edgeai-gst-apps/apps_python` on the AM62A board.
 2. Copy the `custom_models` directory in the repo to the path `/opt/custom_models` on the AM62A board.
